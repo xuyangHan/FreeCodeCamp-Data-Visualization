@@ -1,0 +1,11 @@
+.bar:hover {
+    fill: #f86807 !important;
+}
+
+body {
+    padding: 40px;
+}
+
+#title {
+    text-align: center;
+}
