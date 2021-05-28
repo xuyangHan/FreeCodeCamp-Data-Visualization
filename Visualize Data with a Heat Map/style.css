@@ -6,6 +6,11 @@ body {
     text-align: center;
 }
 
+
+/* .bar:hover {
+    fill: #f86807 !important;
+} */
+
 .center {
     margin-top: 1rem;
     position: absolute;
@@ -14,3 +19,12 @@ body {
     transform: translate(-50%, -50%);
     border: 3px solid #4287f5;
 }
+
+
+/* .legend {
+    font-size: 12px;
+}
+
+rect {
+    stroke-width: 2;
+} */
