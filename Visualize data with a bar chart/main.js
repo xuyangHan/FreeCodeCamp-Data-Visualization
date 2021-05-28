@@ -39,6 +39,7 @@ req.onload = function() {
         .style("border-width", "1px")
         .style("border-radius", "5px")
         .style("padding", "10px")
+        .style("position", "absolute")
 
     // Three function that change the tooltip when user hover / move / leave a cell
     const mouseover = function(d) {
@@ -50,8 +51,8 @@ req.onload = function() {
 
     const mousemove = function(event, d) {
         tooltip.style("transform", "translateY(-55%)")
-            .style("left", (event.x) / 2 + "px")
-            .style("top", (event.y) / 2 - 30 + "px")
+            .style("left", (d3.mouse(this)[0] + 150) + "px")
+            .style("top", (d3.mouse(this)[1] + 60) + "px")
     }
     const mouseleave = function(event, d) {
         tooltip
@@ -77,7 +78,7 @@ req.onload = function() {
         .data(json)
         .enter()
         .append("rect")
-        .attr("x", (d, i) => xScale(parseFloat(d[0].slice(0, 4)) + parseFloat(d[0].slice(5, 7) / 12)))
+        .attr("x", (d, i) => xScale(parseFloat(d[0].slice(0, 4)) + parseFloat((d[0].slice(5, 7) - 1) / 12)))
         .attr("y", (d, i) => yScale(d[1]))
         .attr("data-date", (d, i) => d[0])
         .attr("data-gdp", (d, i) => d[1])
