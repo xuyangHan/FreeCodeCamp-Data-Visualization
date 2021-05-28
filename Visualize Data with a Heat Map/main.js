@@ -24,7 +24,7 @@ req.onload = function() {
     const maxT = d3.max(json, (d, i) => parseInt(d.variance)) + baseTemperature;
     const minT = d3.min(json, (d, i) => parseInt(d.variance)) + baseTemperature;
     const myColor = d3.scaleLinear()
-        .range(['#abd9e9', '#fdae61'])
+        .range(['#2196F3', '#FFEB3B'])
         .domain([minT, maxT])
 
     // set scale and create axis 
@@ -126,7 +126,7 @@ req.onload = function() {
                 return yScale('December')
             }
         })
-        .attr("width", 2)
+        .attr("width", 5)
         .attr("height", yScale.bandwidth())
         .attr("fill", (d, i) => myColor(baseTemperature + d.variance))
         .on("mouseover", mouseover)
