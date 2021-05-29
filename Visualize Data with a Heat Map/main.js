@@ -9,7 +9,7 @@ req.onload = function() {
 
     // set size of the chart
     const margin = { top: 10, right: 30, bottom: 20, left: 50 },
-        w = 1000 - margin.left - margin.right,
+        w = 1500 - margin.left - margin.right,
         h = 500 - margin.top - margin.bottom;
     const padding = 60;
 
@@ -85,8 +85,8 @@ req.onload = function() {
 
     const mousemove = function(event, d) {
         tooltip.style("transform", "translateY(-55%)")
-            .style("left", (d3.mouse(this)[0] + 180) + "px")
-            .style("top", (d3.mouse(this)[1] + 90) + "px")
+            .style("left", (d3.mouse(this)[0] + 90) + "px")
+            .style("top", (d3.mouse(this)[1] + 180) + "px")
     }
     const mouseleave = function(event, d) {
         tooltip
@@ -126,8 +126,12 @@ req.onload = function() {
                 return yScale('December')
             }
         })
+        .attr("class", "cell")
         .attr("width", 5)
         .attr("height", yScale.bandwidth())
+        .attr("data-month", (d, i) => d.month)
+        .attr("data-year", (d, i) => d.year)
+        .attr("data-temp", (d, i) => baseTemperature + d.variance)
         .attr("fill", (d, i) => myColor(baseTemperature + d.variance))
         .on("mouseover", mouseover)
         .on("mousemove", mousemove)
