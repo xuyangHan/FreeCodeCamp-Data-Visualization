@@ -129,11 +129,54 @@ req.onload = function() {
         .attr("class", "cell")
         .attr("width", 5)
         .attr("height", yScale.bandwidth())
-        .attr("data-month", (d, i) => d.month)
+        .attr("data-month", (d, i) => d.month - 1)
         .attr("data-year", (d, i) => d.year)
         .attr("data-temp", (d, i) => baseTemperature + d.variance)
         .attr("fill", (d, i) => myColor(baseTemperature + d.variance))
         .on("mouseover", mouseover)
         .on("mousemove", mousemove)
         .on("mouseleave", mouseleave)
+
+    // create legend in svg
+    const legendColors = [
+        '#a50026',
+        '#d73027',
+        '#f46d43',
+        '#fdae61',
+        '#fee090',
+        '#ffffbf',
+        '#e0f3f8',
+        '#abd9e9',
+        '#74add1',
+        '#4575b4',
+        '#313695'
+    ].reverse();
+    // create legend in svg
+    const legend = svg.append("g")
+        .attr('id', 'legend')
+
+    legend.selectAll('#legend')
+        .data(legendColors)
+        .enter()
+        .append('g')
+        .attr('class', 'legend-label')
+        .attr('transform', function(d, i) {
+            return 'translate(0,' + (h / 2 - i * 20) + ')';
+        })
+
+    legend.selectAll('g')
+        .append('rect')
+        .attr('x', w - 18)
+        .attr('width', 18)
+        .attr('height', 18)
+        .style('fill', (d, i) => d)
+
+    legend.selectAll('g').append('text')
+        .attr('x', w - 24)
+        .attr('y', 9)
+        .attr('dy', '.35em')
+        .style('text-anchor', 'end')
+        .text(function(d, i) {
+            return minT + (i / legendColors.length) * (maxT - minT) + ' °C';
+        });
 };
