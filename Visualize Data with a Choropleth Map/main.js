@@ -1,182 +1,143 @@
-// get gdp json data
-const req = new XMLHttpRequest();
-req.open("GET", 'https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/global-temperature.json', true);
-req.send();
-req.onload = function() {
-    // get point data
-    const json = JSON.parse(req.responseText).monthlyVariance;
-    const baseTemperature = JSON.parse(req.responseText).baseTemperature;
+document.addEventListener("DOMContentLoaded", () => {
+    let usCountyDataPromise = fetch("https://raw.githubusercontent.com/no-stack-dub-sack/testable-projects-fcc/master/src/data/choropleth_map/counties.json");
+    let educationDataPromise = fetch('https://raw.githubusercontent.com/no-stack-dub-sack/testable-projects-fcc/master/src/data/choropleth_map/for_user_education.json');
+    Promise.all([usCountyDataPromise, educationDataPromise])
+        .then(responses => Promise.all([responses[0].text(), responses[1].text()]))
+        .then(data => {
+            loadMap(data[0], data[1]);
+        })
+});
 
-    // set size of the chart
-    const margin = { top: 10, right: 30, bottom: 20, left: 50 },
-        w = 1500 - margin.left - margin.right,
-        h = 500 - margin.top - margin.bottom;
-    const padding = 60;
+let loadMap = (countyDetails, educationDetails) => {
+    const countyData = JSON.parse(countyDetails);
+    const educationData = JSON.parse(educationDetails);
 
-    // create chart in svg
-    const svg = d3.select("div.chart")
-        .append("svg")
-        .attr("class", "center")
-        .attr("width", w)
-        .attr("height", h);
-
-    // Build color scale
-    const maxT = d3.max(json, (d, i) => parseInt(d.variance)) + baseTemperature;
-    const minT = d3.min(json, (d, i) => parseInt(d.variance)) + baseTemperature;
-    const myColor = d3.scaleLinear()
-        .range(['#2196F3', '#FFEB3B'])
-        .domain([minT, maxT])
-
-    // set scale and create axis 
-    const xScale = d3.scaleLinear()
-        .domain([d3.min(json, (d, i) => parseInt(d.year)), d3.max(json, (d, i) => parseInt(d.year))])
-        .range([padding, w - padding]);
-
-    const xAxis = d3.axisBottom(xScale);
+    const svgHeight = getChartHeight();
+    const svgWidth = getChartWidth();
+    const padding = getChartPadding();
+    let svg = loadSvg(svgHeight, svgWidth);
+    let path = d3.geoPath();
+    let tooltip = loadTooltip();
     svg.append("g")
-        .attr("transform", "translate(0," + (h - padding) + ")")
-        .attr("id", "x-axis")
+        .attr("class", "counties")
+        .selectAll("path")
+        .data(topojson.feature(countyData, countyData.objects.counties).features)
+        .enter()
+        .append("path")
+        .attr("class", "county")
+        .attr("data-fips", (d) => d.id)
+        .attr("data-education", (d) => getPercentOfDegreeHolders(d.id, educationData))
+        .attr("fill", (d) => {
+            let degreeHoldersPercent = getPercentOfDegreeHolders(d.id, educationData);
+            return getCountyFillColor(degreeHoldersPercent);
+        })
+        .attr("d", path)
+        .on("mouseover", (d) => {
+            tooltip.attr("data-education", () => getPercentOfDegreeHolders(d.id, educationData))
+                .style("opacity", 1)
+                .style("left", `${(d3.event.pageX+10)}px`)
+                .style("top", `${(d3.event.pageY-25)}px`)
+                .html(getToolTipCountyEducationDetails(d.id, educationData));
+        })
+        .on("mouseout", (d) => {
+            tooltip.style("opacity", 0);
+        });
+
+    let legendSvg = loadSvg(50, 200).attr("id", "legend");
+    legendSvg = addLegendProperties(legendSvg);
+    legendSvg.attr("transform", "translate(10px,10px)");
+
+    let axisSvg = loadSvg(50, 200).attr("id", "axisSvg");
+    var customScale = d3.scaleLinear()
+        .domain([0, 3, 12, 21, 30, 39, 48, 57, 66, 100])
+        .range([0.7, 1.5, 20, 40, 60, 80, 100, 120, 140, 160]);
+
+    let xAxis = d3.axisBottom().scale(customScale)
+        .tickValues([3, 12, 21, 30, 39, 48, 57, 66, 100])
+        .tickSize(8);
+    axisSvg.attr("transform", `translate(0,0)`)
         .call(xAxis);
 
-    // Build Y scales and axis:
-    const months = [
-        'January',
-        'February',
-        'March',
-        'April',
-        'May',
-        'June',
-        'July',
-        'August',
-        'September',
-        'October',
-        'November',
-        'December'
-    ];
-    const yScale = d3.scaleBand()
-        .range([h - padding, padding])
-        .domain(months);
+}
 
-    const yAxis = d3.axisLeft(yScale);
-    svg.append("g")
-        .attr("transform", "translate(" + padding + ",0)")
-        .attr("id", "y-axis")
-        .call(yAxis);
-
-    // Create a tooltip
-    const tooltip = d3.select("#my_dataviz")
+/** Return chart height.*/
+const getChartHeight = () => 600;
+/** Return chart width.*/
+const getChartWidth = () => 950;
+/** Return chart padding.*/
+const getChartPadding = () => 100;
+/** Add svg in body and return it.*/
+let loadSvg = (height, width) => {
+    return d3.select("body")
+        .append("svg")
+        .attr("height", height)
+        .attr("width", width);
+};
+/** Return tooltip that will show inforamtion about a rectangle when it is hovered.*/
+let loadTooltip = () => {
+    return d3.select("body")
         .append("div")
         .style("opacity", 0)
-        .attr("id", "tooltip")
-        .style("background-color", "white")
-        .style("border", "solid")
-        .style("border-width", "1px")
-        .style("border-radius", "5px")
-        .style("padding", "10px")
-        .style("position", "absolute")
+        .attr("id", "tooltip");
+};
+/** Fetch county educational details and then return percent of degree holders.*/
+let getPercentOfDegreeHolders = (elementToSearch, ArraryForSearch) => {
+    let countyEducationDetails = getCountyEducationDetails(elementToSearch, ArraryForSearch);
+    return countyEducationDetails.bachelorsOrHigher;
+};
 
-    // Three function that change the tooltip when user hover / move / leave a cell
-    const mouseover = function(d) {
-        tooltip
-            .html("Year: " + d.year + "<br>" + "T: " + (baseTemperature + d.variance))
-            .style("opacity", 1)
-            .attr("data-year", d.year)
-    }
 
-    const mousemove = function(event, d) {
-        tooltip.style("transform", "translateY(-55%)")
-            .style('left', d3.event.pageX + 10 + 'px')
-            .style('top', d3.event.pageY - 28 + 'px')
-    }
-    const mouseleave = function(event, d) {
-        tooltip
-            .style("opacity", 0)
-    }
+let getCountyEducationDetails = (elementToSearch, arrayForSearch) => {
+    let countyEducationData = arrayForSearch.filter((element) => {
+        if (element.fips == elementToSearch)
+            return element;
+    });
+    return countyEducationData[0];
+};
 
-    // append each data in chart
-    svg.selectAll()
-        .data(json)
+/** Return tooltip that will show inforamtion about a rectangle when it is hovered.*/
+let getToolTipCountyEducationDetails = (elementToSearch, ArraryForSearch) => {
+    let countyEducationDetails = getCountyEducationDetails(elementToSearch, ArraryForSearch);
+    let resultHTML = `${countyEducationDetails.area_name}, ${countyEducationDetails.state} : ${countyEducationDetails.bachelorsOrHigher}%`;
+    return resultHTML;
+};
+
+
+let getCountyFillColor = (percentOfDegreeHolders) => {
+    let resultColor = "black";
+    if (percentOfDegreeHolders < 12)
+        resultColor = "#f99ba9";
+    else if (percentOfDegreeHolders < 21)
+        resultColor = "#f5536b";
+    else if (percentOfDegreeHolders < 30)
+        resultColor = "#f32c4a";
+    else if (percentOfDegreeHolders < 39)
+        resultColor = "#dc0d2c";
+    else if (percentOfDegreeHolders < 48)
+        resultColor = "#a00920";
+    else if (percentOfDegreeHolders < 57)
+        resultColor = "#6d0616";
+    else if (percentOfDegreeHolders < 66)
+        resultColor = "#37030b";
+    else if (percentOfDegreeHolders >= 66)
+        resultColor = "#1c0206";
+
+    return resultColor;
+};
+
+/** Add custom properties to all the elements of legend svg element. */
+let addLegendProperties = (legendSvg) => {
+    let legendColorRange = ["<12", "<21", "<30", "<39", "<48", "<57", "<66", ">=66"];
+    let colorData = ["#f99ba9", "#f5536b", "#f32c4a", "#dc0d2c", "#a00920", "#6d0616", "#37030b", "#1c0206"];
+    return legendSvg.selectAll("rect")
+        .data(colorData)
         .enter()
         .append("rect")
-        .attr("x", (d, i) => xScale(d.year))
-        .attr("y", (d, i) => {
-            if (d.month == 1) {
-                return yScale('January')
-            } else if (d.month == 2) {
-                return yScale('February')
-            } else if (d.month == 3) {
-                return yScale('March')
-            } else if (d.month == 4) {
-                return yScale('April')
-            } else if (d.month == 5) {
-                return yScale('May')
-            } else if (d.month == 6) {
-                return yScale('June')
-            } else if (d.month == 7) {
-                return yScale('July')
-            } else if (d.month == 8) {
-                return yScale('August')
-            } else if (d.month == 9) {
-                return yScale('September')
-            } else if (d.month == 10) {
-                return yScale('October')
-            } else if (d.month == 11) {
-                return yScale('November')
-            } else if (d.month == 12) {
-                return yScale('December')
-            }
-        })
-        .attr("class", "cell")
-        .attr("width", 5)
-        .attr("height", yScale.bandwidth())
-        .attr("data-month", (d, i) => d.month - 1)
-        .attr("data-year", (d, i) => d.year)
-        .attr("data-temp", (d, i) => baseTemperature + d.variance)
-        .attr("fill", (d, i) => myColor(baseTemperature + d.variance))
-        .on("mouseover", mouseover)
-        .on("mousemove", mousemove)
-        .on("mouseleave", mouseleave)
-
-    // create legend in svg
-    const legendColors = [
-        '#a50026',
-        '#d73027',
-        '#f46d43',
-        '#fdae61',
-        '#fee090',
-        '#ffffbf',
-        '#e0f3f8',
-        '#abd9e9',
-        '#74add1',
-        '#4575b4',
-        '#313695'
-    ].reverse();
-    // create legend in svg
-    const legend = svg.append("g")
-        .attr('id', 'legend')
-
-    legend.selectAll('#legend')
-        .data(legendColors)
-        .enter()
-        .append('g')
-        .attr('class', 'legend-label')
-        .attr('transform', function(d, i) {
-            return 'translate(0,' + (h / 2 - i * 20) + ')';
-        })
-
-    legend.selectAll('g')
-        .append('rect')
-        .attr('x', w - 18)
-        .attr('width', 18)
-        .attr('height', 18)
-        .style('fill', (d, i) => d)
-
-    legend.selectAll('g').append('text')
-        .attr('x', w - 24)
-        .attr('y', 9)
-        .attr('dy', '.35em')
-        .style('text-anchor', 'end')
-        .text(function(d, i) {
-            return minT + (i / legendColors.length) * (maxT - minT) + ' °C';
-        });
+        .attr("x", (d, i) => 20 * i)
+        .attr("y", (d, i) => 30)
+        .attr("height", (d, i) => "20px")
+        .attr("width", (d, i) => "20px")
+        .attr("fill", (d, i) => d)
+        .append("title")
+        .text((d, i) => legendColorRange[i]);
 };
