@@ -51,8 +51,8 @@ req.onload = function() {
 
     const mousemove = function(event, d) {
         tooltip.style("transform", "translateY(-55%)")
-            .style("left", (d3.mouse(this)[0] + 150) + "px")
-            .style("top", (d3.mouse(this)[1] + 60) + "px")
+            .style('left', d3.event.pageX + 10 + 'px')
+            .style('top', d3.event.pageY - 28 + 'px')
     }
     const mouseleave = function(event, d) {
         tooltip
