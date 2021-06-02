@@ -49,6 +49,37 @@ req.onload = function() {
         .domain([10, 30])
         .range([.5, 1])
 
+    // Create a tooltip
+    const tooltip = d3.select("#my_dataviz")
+        .append("div")
+        .style("opacity", 0)
+        .attr("id", "tooltip")
+        .style("background-color", "white")
+        .style("border", "solid")
+        .style("border-width", "1px")
+        .style("border-radius", "5px")
+        .style("padding", "10px")
+        .style("position", "absolute")
+
+    // Three function that change the tooltip when user hover / move / leave a cell
+    const mouseover = function(d) {
+        tooltip
+            .html("name: " + d.data.name + "<br>" + "value: " + d.value)
+            .style("opacity", 1)
+            .attr("data-name", d.data.name)
+            .attr("data-value", d.data.value)
+    }
+
+    const mousemove = function(event, d) {
+        tooltip.style("transform", "translateY(-55%)")
+            .style('left', d3.event.pageX + 10 + 'px')
+            .style('top', d3.event.pageY - 28 + 'px')
+    }
+    const mouseleave = function(event, d) {
+        tooltip
+            .style("opacity", 0)
+    }
+
     // use this information to add rectangles:
     var cell = svg
         .selectAll("g")
@@ -56,9 +87,12 @@ req.onload = function() {
         .enter()
         .append("g")
         .attr('class', 'group')
+        .attr('width', function(d) { return d.x1 - d.x0; })
+        .attr('height', function(d) { return d.y1 - d.y0; })
 
     // use this information to add rectangles:
     cell.append("rect")
+        .attr('class', 'tile')
         .attr('x', function(d) { return d.x0; })
         .attr('y', function(d) { return d.y0; })
         .attr('width', function(d) { return d.x1 - d.x0; })
@@ -66,13 +100,27 @@ req.onload = function() {
         .style("stroke", "black")
         .style("fill", function(d) { return color(d.parent.data.name) })
         .style("opacity", function(d) { return opacity(d.data.value) })
-
+        .attr('data-name', function(d) { return d.data.name })
+        .attr('data-category', function(d) { return d.data.category })
+        .attr('data-value', function(d) { return d.data.value })
+        .on("mouseover", mouseover)
+        .on("mousemove", mousemove)
+        .on("mouseleave", mouseleave)
 
     // and to add the text labels
     cell.append("text")
-        .attr("x", function(d) { return d.x0 + 10 }) // +5 to adjust position (more right)
-        .attr("y", function(d) { return d.y0 + 15 }) // +10 to adjust position (lower)
-        .text((d) => d.data.name.toString())
+        .attr('class', 'tile-text')
+        .attr("x", (d) => {
+            return d.x0 + 10;
+        }) // +5 to adjust position (more right)
+        .attr("y", (d) => {
+            return d.y0 + 15;
+        }) // +10 to adjust position (lower)
+        .selectAll('tspan')
+        .data((d) => d.data.name.split(/(?=[A-Z][^A-Z])/g))
+        .enter()
+        .append('tspan')
+        .text((d) => d)
         .attr("font-size", "12px")
         .attr("fill", "black")
 
